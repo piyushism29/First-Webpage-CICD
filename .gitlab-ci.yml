@@ -5,7 +5,7 @@ deploy_job:
   stage: deploy
   image: alpine:latest
   script:
-    # 1. Install necessary tools
+    # 1. Install necessary tools (SSH and Rsync)
     - apk add --no-cache openssh-client rsync
 
     # 2. Setup the SSH directory and scan the VM's host key
@@ -13,16 +13,14 @@ deploy_job:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts
 
-    # 3. Fix permissions on the auto-generated key file
+    # 3. Fix permissions on the auto-generated key file from GitLab variable
     - chmod 400 "$SSH_PRIVATE_KEY"
 
     # 4. Deploy (sync) the files to the VM
     - rsync -avz -e "ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" ./ "$VM_USER@$VM_IP:/home/$VM_USER/app/"
 
-    # 5. Remote Restart: Kill the old process and start the new one
-    # pkill node: stops any existing app
-    # nohup: keeps the app running after the pipeline disconnects
-    - ssh -i "$SSH_PRIVATE_KEY" "$VM_USER@$VM_IP" "pkill node || true && cd /home/$VM_USER/app && nohup node app.js > /dev/null 2>&1 &"
+    # 5. Remote Restart Fix: Starts the app and exits the SSH session so it doesn't hang
+    - ssh -i "$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$VM_USER@$VM_IP" "pkill node || true; cd /home/$VM_USER/app; nohup node app.js > app.log 2>&1 & sleep 1"
   
   only:
     - main
