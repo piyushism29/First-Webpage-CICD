@@ -1,26 +1,14 @@
-stages:
-  - deploy
-
 deploy_job:
   stage: deploy
   image: alpine:latest
   script:
-    # 1. Install necessary tools
     - apk add --no-cache openssh-client rsync
-
-    # 2. Setup the SSH directory and known_hosts to prevent MITM prompts
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts
+    
+    # Since the type is now "File", we just set the permissions on that file
+    - chmod 400 "$SSH_PRIVATE_KEY"
 
-    # 3. Create the key file using printf to preserve original formatting/newlines
-    # Use 400 permissions; SSH will reject keys that are too "world-readable"
-    - printf "%s\n" "$SSH_PRIVATE_KEY" > key.pem
-    - chmod 400 key.pem
-
-    # 4. Run rsync with strict SSH options
-    # -o StrictHostKeyChecking=no is a backup to ensure the job doesn't hang
-    - rsync -avz -e "ssh -i key.pem -o StrictHostKeyChecking=no" ./ "$VM_USER@$VM_IP:/home/$VM_USER/app/"
-  
-  only:
-    - main
+    # Use the variable directly (it now acts as a file path)
+    - rsync -avz -e "ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" ./ "$VM_USER@$VM_IP:/home/$VM_USER/app/"
