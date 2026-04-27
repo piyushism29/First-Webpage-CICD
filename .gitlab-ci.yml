@@ -14,12 +14,15 @@ deploy_job:
     - ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts
 
     # 3. Fix permissions on the auto-generated key file
-    # GitLab puts the path to the key in the $SSH_PRIVATE_KEY variable
     - chmod 400 "$SSH_PRIVATE_KEY"
 
-    # 4. Deploy using rsync
-    # We use -i with the variable directly as it points to the file path
+    # 4. Deploy (sync) the files to the VM
     - rsync -avz -e "ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" ./ "$VM_USER@$VM_IP:/home/$VM_USER/app/"
+
+    # 5. Remote Restart: Kill the old process and start the new one
+    # pkill node: stops any existing app
+    # nohup: keeps the app running after the pipeline disconnects
+    - ssh -i "$SSH_PRIVATE_KEY" "$VM_USER@$VM_IP" "pkill node || true && cd /home/$VM_USER/app && nohup node app.js > /dev/null 2>&1 &"
   
   only:
     - main
