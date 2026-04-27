@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #000428, #007292ff);
+      background: linear-gradient(to right, #000428, #925000ff);
       color: white;
       text-align: center;
       padding: 20px;
