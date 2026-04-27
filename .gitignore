@@ -1,0 +1,7 @@
+.terraform/
+terraform.tfstate*
+*.pem
+provider.tf
+local.tf
+backend.tf
+.terraform.lock.hcl
