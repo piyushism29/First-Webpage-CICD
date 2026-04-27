@@ -1,20 +1,25 @@
+stages:
+  - deploy
+
 deploy_job:
   stage: deploy
   image: alpine:latest
   script:
+    # 1. Install necessary tools
     - apk add --no-cache openssh-client rsync
+
+    # 2. Setup the SSH directory and scan the VM's host key
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    
-    # 1. Check if the file actually exists and looks like a key
-    - ls -l "$SSH_PRIVATE_KEY"
-    - head -n 1 "$SSH_PRIVATE_KEY"
-    
-    # 2. Fix permissions
-    - chmod 400 "$SSH_PRIVATE_KEY"
-    
-    # 3. Add the host key
     - ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts
-    
-    # 4. Try the transfer
+
+    # 3. Fix permissions on the auto-generated key file
+    # GitLab puts the path to the key in the $SSH_PRIVATE_KEY variable
+    - chmod 400 "$SSH_PRIVATE_KEY"
+
+    # 4. Deploy using rsync
+    # We use -i with the variable directly as it points to the file path
     - rsync -avz -e "ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" ./ "$VM_USER@$VM_IP:/home/$VM_USER/app/"
+  
+  only:
+    - main
